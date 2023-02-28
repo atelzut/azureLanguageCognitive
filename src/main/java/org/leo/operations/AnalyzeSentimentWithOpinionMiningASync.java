@@ -1,4 +1,4 @@
-package org.example.operations;
+package org.leo.operations;
 
 import com.azure.ai.textanalytics.TextAnalyticsAsyncClient;
 import com.azure.ai.textanalytics.TextAnalyticsClientBuilder;
@@ -22,36 +22,17 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class AnalyzeSentimentWithOpinionMiningASync {
+public class AnalyzeSentimentWithOpinionMiningASync implements AzureOperation{
 
-    public static void analize(List<TextDocumentInput> documents, String key, String endpoint) {
-        TextAnalyticsAsyncClient client = new TextAnalyticsClientBuilder()
-                .credential(new AzureKeyCredential(key))
-                .endpoint(endpoint)
-                .buildAsyncClient();
+    public static JSONObject analize(List<TextDocumentInput> documents) {
 
-        JSONObject results= new JSONObject();
-        client.beginAnalyzeActions(documents,
-                        new TextAnalyticsActions()
-                                .setDisplayName("{tasks_display_name}")
-                                .setRecognizeEntitiesActions(new RecognizeEntitiesAction())
-                                .setExtractKeyPhrasesActions(new ExtractKeyPhrasesAction()),
-                        new AnalyzeActionsOptions())
-                .flatMap(result -> {
-                    AnalyzeActionsOperationDetail operationDetail = result.getValue();
-                    System.out.printf("Action display name: %s, Successfully completed actions: %d, in-process actions: %d,"
-                                    + " failed actions: %d, total actions: %d%n",
-                            operationDetail.getDisplayName(), operationDetail.getSucceededCount(),
-                            operationDetail.getInProgressCount(), operationDetail.getFailedCount(),
-                            operationDetail.getTotalCount());
-                    return result.getFinalResult();
-                })
+        JSONObject results = new JSONObject();
+        aSynclient.beginAnalyzeActions(documents, new TextAnalyticsActions().setDisplayName("{tasks_display_name}").setRecognizeEntitiesActions(new RecognizeEntitiesAction()).setExtractKeyPhrasesActions(new ExtractKeyPhrasesAction()), new AnalyzeActionsOptions()).flatMap(result -> {
+            AnalyzeActionsOperationDetail operationDetail = result.getValue();
+            System.out.printf("Action display name: %s, Successfully completed actions: %d, in-process actions: %d," + " failed actions: %d, total actions: %d%n", operationDetail.getDisplayName(), operationDetail.getSucceededCount(), operationDetail.getInProgressCount(), operationDetail.getFailedCount(), operationDetail.getTotalCount());
+            return result.getFinalResult();})
                 .flatMap(analyzeActionsResultPagedFlux -> analyzeActionsResultPagedFlux.byPage())
-                .subscribe(
-                        perPage -> processAnalyzeActionsResult(perPage,results),
-                        ex -> System.out.println("Error listing pages: " + ex.getMessage()),
-                        () -> System.out.println("Successfully listed all pages")
-                );
+                .subscribe(perPage -> processAnalyzeActionsResult(perPage, results), ex -> System.out.println("Error listing pages: " + ex.getMessage()), () -> System.out.println("Successfully listed all pages"));
 
 
         // The .subscribe() creation and assignment is not a blocking call. For the purpose of this example, we sleep
@@ -64,12 +45,14 @@ public class AnalyzeSentimentWithOpinionMiningASync {
         }
         System.out.println("######################");
         System.out.println(results.toString());
+
+        return results;
     }
 
     private static void processAnalyzeActionsResult(PagedResponse<AnalyzeActionsResult> perPage, JSONObject results) {
-        System.out.printf("Response code: %d, Continuation Token: %s.%n",
-                perPage.getStatusCode(), perPage.getContinuationToken());
-        JSONArray documents = new JSONArray();
+        System.out.printf("Response code: %d, Continuation Token: %s.%n", perPage.getStatusCode(), perPage.getContinuationToken());
+        JSONArray entities = new JSONArray();
+        JSONArray keyPhrasesJson = new JSONArray();
         JSONArray errors = new JSONArray();
 
         for (AnalyzeActionsResult actionsResult : perPage.getElements()) {
@@ -79,19 +62,16 @@ public class AnalyzeSentimentWithOpinionMiningASync {
                     for (RecognizeEntitiesResult documentResult : actionResult.getDocumentsResults()) {
                         if (!documentResult.isError()) {
                             for (CategorizedEntity entity : documentResult.getEntities()) {
-                                System.out.printf("\tText: %s, category: %s, confidence score: %f.%n",
-                                        entity.getText(), entity.getCategory(), entity.getConfidenceScore());
-                           documents.put(new JSONObject(entity));
+                                System.out.printf("\tText: %s, category: %s, confidence score: %f.%n", entity.getText(), entity.getCategory(), entity.getConfidenceScore());
+                                entities.put(new JSONObject(entity));
                             }
                         } else {
-                            System.out.printf("\tCannot recognize entities. Error: %s%n",
-                                    documentResult.getError().getMessage());
+                            System.out.printf("\tCannot recognize entities. Error: %s%n", documentResult.getError().getMessage());
                             errors.put(documentResult.getError());
                         }
                     }
                 } else {
-                    System.out.printf("\tCannot execute Entities Recognition action. Error: %s%n",
-                            actionResult.getError().getMessage());
+                    System.out.printf("\tCannot execute Entities Recognition action. Error: %s%n", actionResult.getError().getMessage());
                 }
             }
 
@@ -103,18 +83,19 @@ public class AnalyzeSentimentWithOpinionMiningASync {
                             System.out.println("\tExtracted phrases:");
                             for (String keyPhrases : documentResult.getKeyPhrases()) {
                                 System.out.printf("\t\t%s.%n", keyPhrases);
+                                keyPhrasesJson.put(keyPhrases);
                             }
                         } else {
-                            System.out.printf("\tCannot extract key phrases. Error: %s%n",
-                                    documentResult.getError().getMessage());
+                            System.out.printf("\tCannot extract key phrases. Error: %s%n", documentResult.getError().getMessage());
+                            errors.put(documentResult.getError());
                         }
                     }
                 } else {
-                    System.out.printf("\tCannot execute Key Phrases Extraction action. Error: %s%n",
-                            actionResult.getError().getMessage());
+                    System.out.printf("\tCannot execute Key Phrases Extraction action. Error: %s%n", actionResult.getError().getMessage());
+                    errors.put(actionResult.getError());
                 }
             }
         }
-        results.put("documents", documents).put("errors", errors);
+        results.put("entities", entities).put("keyPhrases", keyPhrasesJson).put("errors", errors);
     }
 }

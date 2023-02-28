@@ -1,8 +1,8 @@
-package org.example;
+package org.leo;
 
 
 import com.azure.ai.textanalytics.models.TextDocumentInput;
-import org.example.operations.*;
+import org.leo.operations.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,45 +23,57 @@ public class Main {
     private static String documentC = "Buongiorno, in data 01.02.2023 ho effettuato una prenotazione di parcheggio, avente nr. 3ES4PX8SP0M. Oggi 06.02.2023 per esigenze lavorative ho " +
             "dovuto modificare tale prenotazione. In fase di aggiornamento della prenotazione in questione, dopo aver effettuato l'accesso mi si aggiornava automaticamente la pagina, " +
             "reindirizzandomi ad una pagina per per il pagamento online. Premesso che avevo già pagato il cambio prenotazione (24 euro circa) mediante il credito voucher acquistato in " +
-            "precedenza. Data l'anomalia della richiesta di ulteriore pagamento, chiudevo la pagina internet, e dopo essere tornato sulla mia prenotazione ,la stessa risultava bloccata. C'è scritto che la prenotazione è modificata, ma non vi sono le date aggiornate, nè tantomeno mi permette di visualizzare o accedervi. Grazie per l'attenzione, saluti Cirignotta Aleandro ";
+            "precedenza. Data l'anomalia della richiesta di ulteriore pagamento, chiudevo la pagina internet, e dopo essere tornato sulla mia prenotazione ,la stessa risultava bloccata. " +
+            "C'è scritto che la prenotazione è modificata, ma non vi sono le date aggiornate, nè tantomeno mi permette di visualizzare o accedervi. Grazie per l'attenzione, saluti Cirignotta Aleandro ";
     private static List<TextDocumentInput> batchDocuments = new ArrayList<>(
             Arrays.asList(new TextDocumentInput("0", documentA), new TextDocumentInput("1", documentB), new TextDocumentInput("2", documentC)));
 
     public static void main(String[] args) {
 
-        switch (args!=null?args[0]:"-1") {
+        switch (args != null ? args[0] : "-1") {
             case "AnalyzeSentimentWithOpinionMiningASync": {
-                List<TextDocumentInput> documents = new ArrayList<>();
-                AnalyzeSentimentWithOpinionMiningASync.analize(batchDocuments, apiKey, endpoint);
+                AnalyzeSentimentWithOpinionMiningASync.analize(batchDocuments);
+                break;
             }
             case "AnalyzeSentimentWithOpinionMining": {
-                List<TextDocumentInput> documents = new ArrayList<>();
-                AnalyzeSentimentWithOpinionMining.analizeDocumentList(batchDocuments, apiKey, endpoint);
+                AnalyzeSentimentWithOpinionMining.analizeDocumentList(batchDocuments);
+                break;
             }
             case "AnalyzeActions": {
-                List<TextDocumentInput> documents = new ArrayList<>();
-                AnalyzeActions.analize(batchDocuments, apiKey, endpoint);
+                AnalyzeActions.analize(batchDocuments);
+                break;
             }
             case "RecognizeEntities": // Mirco
             {
-                RecognizeEntities.analize(batchDocuments, apiKey, endpoint);
+                RecognizeEntities.analize(batchDocuments);
+                break;
             }
             case "ExtractKeyPhrases": // Mirco
             {
                 for (TextDocumentInput document : batchDocuments) {
                     System.out.println("Extracting key phrases for document id: " + document.getId());
-                    ExtractKeyPhrases.analyze(document.getText(), apiKey, endpoint);
+                    ExtractKeyPhrases.analyze(document.getText());
                 }
+                break;
             }
             case "ExtractSummary": {
                 for (TextDocumentInput document : batchDocuments) {
                     System.out.println("Extracting key phrases for document id: " + document.getId());
-                    ExtractSummary.analyze(document.getText(), apiKey, endpoint);
+                    ExtractSummary.analyze(document.getText());
                 }
+                break;
+            }
+
+            case "test": {
+
+                RecognizeEntities.analizesingleToJson(batchDocuments.get(0));
+                break;
+
             }
             default: {
 
                 System.out.println("Set at least one run parameter!");
+                break;
             }
         }
     }

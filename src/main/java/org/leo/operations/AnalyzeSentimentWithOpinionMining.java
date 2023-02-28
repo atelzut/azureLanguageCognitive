@@ -1,12 +1,9 @@
-package org.example.operations;
+package org.leo.operations;
 
 import com.azure.ai.textanalytics.TextAnalyticsClient;
 import com.azure.ai.textanalytics.TextAnalyticsClientBuilder;
 import com.azure.ai.textanalytics.models.*;
 import com.azure.core.credential.AzureKeyCredential;
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -15,7 +12,7 @@ import java.util.List;
 /**
  * Sample demonstrates how to synchronously analyze the sentiment of document with opinion mining.
  */
-public class AnalyzeSentimentWithOpinionMining {
+public class AnalyzeSentimentWithOpinionMining implements  AzureOperation{
     /*
      * Main method to invoke this demo about how to analyze the sentiment of document.
      *
@@ -23,24 +20,19 @@ public class AnalyzeSentimentWithOpinionMining {
      */
 
 
-    public static void analizeDocumentList(List<TextDocumentInput> batchDocuments, String apiKey, String endpoint) {
+    public static JSONArray analizeDocumentList(List<TextDocumentInput> batchDocuments) {
         JSONArray documents = new JSONArray();
 
-
-        TextAnalyticsClient client = new TextAnalyticsClientBuilder()
-                .credential(new AzureKeyCredential(apiKey))
-                .endpoint(endpoint)
-                .buildClient();
-
         for (TextDocumentInput batchDoc : batchDocuments) {
-            documents.put(analizeDocument(batchDoc, client));
+            documents.put(analizeDocument(batchDoc));
         }
         System.out.println("##########################");
         System.out.println(new JSONObject().put("documents", documents));
 
+        return documents;
     }
 
-    public static JSONObject analizeDocument(TextDocumentInput batchDocument, TextAnalyticsClient client) {
+    public static JSONObject analizeDocument(TextDocumentInput batchDocument) {
 
         JSONObject jsonObject = new JSONObject();
         // The text that needs be analyzed.
@@ -50,7 +42,7 @@ public class AnalyzeSentimentWithOpinionMining {
         System.out.printf("Text = %s%n", document);
 
         AnalyzeSentimentOptions options = new AnalyzeSentimentOptions().setIncludeOpinionMining(true);
-        final DocumentSentiment documentSentiment = client.analyzeSentiment(document, "en", options);
+        final DocumentSentiment documentSentiment = client.analyzeSentiment(document, "it", options);
         SentimentConfidenceScores scores = documentSentiment.getConfidenceScores();
 
         System.out.printf(
